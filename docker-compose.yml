@@ -1,0 +1,75 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: gateway
+      POSTGRES_PASSWORD: gateway
+      POSTGRES_DB: gateway_notifications
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gateway -d gateway_notifications"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  migrate:
+    build: .
+    command: ["npx", "prisma", "db", "push"]
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgres://gateway:gateway@postgres:5432/gateway_notifications
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  api:
+    build: .
+    command: ["node", "dist/app.js"]
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgres://gateway:gateway@postgres:5432/gateway_notifications
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+      PORT: 3000
+    ports:
+      - "3000:3000"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      rabbitmq:
+        condition: service_healthy
+
+  worker:
+    build: .
+    command: ["node", "dist/worker.js"]
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgres://gateway:gateway@postgres:5432/gateway_notifications
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      rabbitmq:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
