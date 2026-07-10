@@ -15,7 +15,7 @@ const configSchema = z.object({
   RABBITMQ_RETRY_1M_QUEUE: z.string().default('q.notifications.retry.1m'),
   RABBITMQ_RETRY_5M_QUEUE: z.string().default('q.notifications.retry.5m'),
   RABBITMQ_RETRY_15M_QUEUE: z.string().default('q.notifications.retry.15m'),
-  RABBITMQ_DLQ_QUEUE: z.string().default('notifications.dlq'),
+  RABBITMQ_DLQ_QUEUE: z.string().default('q.notifications.dlq'),
 });
 
 export const config = configSchema.parse(process.env);
