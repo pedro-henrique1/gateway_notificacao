@@ -193,4 +193,4 @@ Esse comportamento evita que a fila principal fique travada por mensagens proble
 
 ## Licença
 
-MIT License[](LICENSE)
+Para mais informações, veja o arquivo [LICENSE](LICENSE)
